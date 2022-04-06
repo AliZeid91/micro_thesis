@@ -56,6 +56,7 @@ int main(int argc, char **argv)
         printf("%d %s\n", errno, strerror(errno));
         printf("No connection :(\n");
         //close(s);
+        printf("TsdsdsdHIS IS ALI\n");
     } 
     else {
         int i = 0;
