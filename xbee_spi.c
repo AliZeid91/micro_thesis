@@ -3,7 +3,7 @@
 #include "spi.h"
 
 
-int init_spi_xbee(unsigned spi_chanal, uint8_t mode, uint32_t speed){
+int init_spi_xbee(float spi_chanal, uint8_t mode, uint32_t speed){
 	return spi_open(spi_chanal, mode, speed);
 }
 

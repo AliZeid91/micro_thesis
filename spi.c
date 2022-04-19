@@ -9,15 +9,15 @@
 
 #include "spi.h"
  
-int spi_open(unsigned spi_chanal, uint8_t mode, uint32_t speed)
+int spi_open(float spi_chanal, uint8_t mode, uint32_t speed)
 {
     
 	int fd;
 	int bits_per_word = 8;
 	char  device[32];
-   
+    
 	/* Open the SPI bus file descriptor */
-	sprintf(device, "/dev/spidev0.%d", spi_chanal);
+	sprintf(device, "/dev/spidev%.1f", spi_chanal);;
 	if ((fd = open(device, O_RDWR)) < 0)
    	{
 		perror("Error opening SPI Bus");
@@ -78,7 +78,7 @@ void spi_transfer_1(int fd, uint8_t *data, int length, uint32_t speed){
 	}
 
 }
-
+#if 1
 int spi_transfer(int fd, char *txBuf, char *rxBuf, unsigned count)
 {
 	int ret;
@@ -106,6 +106,8 @@ int spi_transfer(int fd, char *txBuf, char *rxBuf, unsigned count)
 
 	return ret;
 }
+#endif
+
 
 int spi_close(int fd)
 {

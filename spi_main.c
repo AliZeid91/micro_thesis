@@ -78,19 +78,13 @@ int msleep(unsigned int tms) {
   return usleep(tms * 1000);
 }
 
-
-void time_handler1(size_t timer_id, void * user_data)
-{
-    printf("Akshata : Single shot timer expired.(%d)\n", timer_id);
-}
-
 void myHandler(int fd) {
     run_program = false;
 }
 
 void set_up_signal();
 void send_signal(struct gpiohandle_request* signal);
-void set_up_brake_buttom(void);
+void set_up_exit_buttom(void);
 
 int main(void) {
     
@@ -107,16 +101,8 @@ int main(void) {
     unsigned char package_address[9] = {0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87}; //  0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87
     create_xbee_packet(package_length,package_frame_type,package_frame_id,package_address);
     
-    int adc1015_fd;             // Device-Handle 
-    int xbee_serial_fd;
-    adc1015_fd  = i2c_open(I2C_BUS_FILE_DESCRIPTOR,ADC1015_I2C_PORT_PATH);
-    xbee_serial_fd = serial_open(XBEE_SERIAL_PORT_PATH,SERIAL_PORT_BAUD_RATE);
-    
-    init_adc(adc1015_fd,tx_buffer,rx_buffer);
-
     set_up_signal();
-    
-    set_up_brake_buttom();
+    set_up_exit_buttom();
     
 
     uint8_t 	spi_mode = 0;
@@ -127,7 +113,6 @@ int main(void) {
     int mcp3208_fd = init_spi_mcp3208(mcp3208_chanel, spi_mode, spi_speed);
     int xbee_spi_fd = init_spi_xbee(xbee_spi_chanel, spi_mode, spi_speed);
 
-    int BUS = SPI;
     bool get_adc_val = true;
 
     fd_set write_fd, send_package;
@@ -135,91 +120,54 @@ int main(void) {
     int retval;
     
     /* Initialize the timeout */
-        timeout.tv_sec  = 2;       //2 Seconds
-        timeout.tv_usec = 0;   
+    timeout.tv_sec  = 2;       //2 Seconds
+    timeout.tv_usec = 0;   
 
+    /* Initialize the file descriptor set. */
+    FD_ZERO(&send_package);
+    FD_SET(xbee_spi_fd,&send_package);
 
-    #if 0
-        /* Initialize the file descriptor set. */
-        FD_ZERO(&send_package);
-        FD_SET(xbee_serial_fd,&send_package);
-        FD_ZERO(&write_fd);
-        FD_SET(adc1015_fd, &write_fd);
-        while(1){
-            msleep(8);
-            send_signal(&signal);
-            if(get_adc_val)
+    FD_ZERO(&write_fd);
+    FD_SET(mcp3208_fd, &write_fd);
+    while(run_program){
+        send_signal(&signal);
+        if(get_adc_val)
+        {
+            /*Read pedal value & store in rx_buffer */
+            retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
+            if(FD_ISSET(mcp3208_fd,&write_fd))
             {
-                retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-                if(FD_ISSET(adc1015_fd,&write_fd))
-                {
-                    ads1015_rx(adc1015_fd,tx_buffer,rx_buffer);
-                    get_adc_val = false;
-                }
+                tx_buffer[0]= 0b00000110;
+                tx_buffer[1]= 0b00000000;
+                tx_buffer[2]= 0x00;
+                spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
+                get_analog_value(rx_buffer);
+                get_adc_val = false;
             }
-           
-            if(!get_adc_val){
-                packet.data[0] = 0x4D;
-                packet.data[1] = 0x4E;
-                retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
-                if(FD_ISSET(xbee_serial_fd,&send_package))
-                {
-                    /*send read value across bluetooth*/
-                    send_package_uart(&packet,xbee_serial_fd);
-                    get_adc_val = true; 
-                } 
-            }  
-        } 
-    //#else 
-        /* Initialize the file descriptor set. */
-        FD_ZERO(&send_package);
-        FD_SET(xbee_spi_fd,&send_package);
+        }
 
-        FD_ZERO(&write_fd);
-        FD_SET(mcp3208_fd, &write_fd);
-        while(0){
-            send_signal(&signal);
-            if(get_adc_val)
-            {
-                /*Read pedal value & store in rx_buffer */
-                retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-                if(FD_ISSET(mcp3208_fd,&write_fd))
-                {
-                    tx_buffer[0]= 0b00000110;
-                    tx_buffer[1]= 0b00000000;
-                    tx_buffer[2]= 0x00;
-                    spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
-                    get_analog_value(rx_buffer);
-                    get_adc_val = false;
-                }
-            }
+        msleep(100);
 
-            msleep(100);
-
-            if(!get_adc_val){
-                packet.data[0] = 0x4D;
-                packet.data[1] = 0x4E;
-                retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
-
+        if(!get_adc_val){
+            packet.data[0] = 0x4D;
+            packet.data[1] = 0x4E;
+            retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
+        
             if(FD_ISSET(xbee_spi_fd,&send_package))
             {
-                /*send read value across bluetooth*/
+                /*send read value across SPI bus*/
                 send_package_spi(&packet,xbee_spi_fd);
                 get_adc_val = true;  
             }
-            msleep(2);
         }    
+        msleep(2);
+     
     }
-
-    #endif
     
-    while(run_program) {
-        printf("Working\n\r");
-        fflush(stdout);
-        sleep(2);
-    }
-
-    close_serial_port();
+    close(mcp3208_fd);
+    close(xbee_spi_fd);
+    close(signal.fd);
+    close(exit_button.fd);
     return 0;
 }
 
@@ -261,7 +209,7 @@ void send_signal(struct gpiohandle_request* signal){
 		perror("Error setting GPIO to 1");
 }
 
-void set_up_brake_buttom(void){
+void set_up_exit_buttom(void){
     run_program = true;
     int fd, ret;
     exit_button.lineoffset = 13;
@@ -284,7 +232,6 @@ void set_up_brake_buttom(void){
     intData.fd = exit_button.fd;
     intData.func = &myHandler;
     pthread_t intThread;
-    printf("ska starta en thread \n");
     if (pthread_create(&intThread, NULL, waitInterrupt,
     (void*) &intData)) 
     {

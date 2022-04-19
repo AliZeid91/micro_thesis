@@ -45,7 +45,39 @@ void init_adc(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
        
 }
 
-void read_adc(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
+void ads1015_rx(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
+        int16_t adc_val;            // Stores the 16 bit value of ADC conversion
+        
+    /* Set pointer register to 0 to read from the conversion register */
+        writeBuf[0] = 0;		
+        	
+        if (write(i2c_fd, writeBuf, 1) != 1)
+        {
+            perror("Write register select");
+            exit(-1);
+        }
+
+        /* Read the contents of the conversion register into readBuf */
+        if(read(i2c_fd,readBuf,2) !=2)
+        {
+            perror("Read conversion");
+            exit(-1);
+        }
+
+        #if 1
+        /* Combine the two bytes of readBuf into a single 16 bit result */
+        adc_val = readBuf[0] << 8 | readBuf[1];	
+
+        /* Print the result to terminal, first convert from binary value to mV */
+        printf("ADS1015 Voltage Reading %f V \n", (float)adc_val*6.144/32767.0);	
+        //printf("%3d%3d\n",readBuf[0],readBuf[1]);
+        //packet.data[0] = readBuf[0];
+        //packet.data[1] = readBuf[1];
+        #endif
+}
+
+#if 0
+void ads1015_rx(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
         int16_t adc_val;            // Stores the 16 bit value of ADC conversion
         
     /* Set pointer register to 0 to read from the conversion register */
@@ -73,3 +105,4 @@ void read_adc(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
         packet.data[0] = readBuf[0];
         packet.data[1] = readBuf[1];
 }
+#endif

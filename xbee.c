@@ -25,8 +25,6 @@ void create_xbee_packet(unsigned char length, unsigned char frame_type, unsigned
     {
         packet.dest_address[i] = (unsigned char) address[i];
     }
-    packet.data[0] = 0x41;
-    packet.data[1] = 0x42;
 }
 
 
