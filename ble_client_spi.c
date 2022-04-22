@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         float mcp3208_chanel = 0.1;
         int mcp3208_fd = init_spi_mcp3208(mcp3208_chanel, spi_mode, spi_speed);
 
-        int BUS = SPI;
+        int BUS = I2C;
         
         /* Initialize the file descriptor set. */
         if(BUS == I2C)
@@ -120,30 +120,16 @@ int main(int argc, char **argv)
         changemode(1);  //bbfb
         while (!kbhit()) { 
             printf("%d| \n", i);
-            switch (BUS)
+            msleep(30);
+            send_signal(&signal);
+            retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
+            if(FD_ISSET(mcp3208_fd,&write_fd))
             {
-                case I2C:
-                    //msleep(100);
-                    send_signal(&signal);
-                    retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-                    if(FD_ISSET(adc1015_fd,&write_fd))
-                    {
-                        ads1015_rx(adc1015_fd,tx_buffer,rx_buffer);
-                    }
-                    break;
-                case SPI:
-                    //msleep(15);
-                    send_signal(&signal);
-                    retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-                    if(FD_ISSET(mcp3208_fd,&write_fd))
-                    {
-                        tx_buffer[0]= 0b00000110;
-                        tx_buffer[1]= 0b00000000;
-                        tx_buffer[2]= 0x00;
-                        spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
-                        get_analog_value(rx_buffer);
-                    }
-                    break;
+                tx_buffer[0]= 0b00000110;
+                tx_buffer[1]= 0b00000000;
+                tx_buffer[2]= 0x00;
+                spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
+                get_analog_value(rx_buffer);
             }
             //read_adc(adc_fd, adcWriteBuf, adcReadBuf);  //Read pedal value & store in adcReadBuf
             if(BUS == SPI)
@@ -152,7 +138,7 @@ int main(int argc, char **argv)
             }else{
                 write(s, rx_buffer , 3);  //send read value across bluetooth:
             }
-
+           
             i++;
         }
         changemode(0);

@@ -51,9 +51,9 @@
 #include <fcntl.h>
 
 
-#define SERIAL_PORT_BAUD_RATE 38400
+#define SERIAL_PORT_BAUD_RATE 9600
 
-#define XBEE_SERIAL_PORT_PATH  "/dev/ttyUSB0" // Address of our Xbee on the UART bus
+#define XBEE_SERIAL_PORT_PATH   "/dev/ttyUSB0" //"/dev/ttyUSB0" "/dev/serial0" Address of our Xbee on the UART bus
 #define ADC1015_I2C_PORT_PATH   0x48         // Address of our adc converter on the I2C bus
 
 #define I2C_BUS_FILE_DESCRIPTOR 1
@@ -96,22 +96,20 @@ int main(void) {
     uint8_t mcp3208_rx[10];
 
     int package_length = 13;
-    int package_frame_type = 0x00;
+    int package_frame_type = 0x00;      
     int package_frame_id = 0x01; 
-    unsigned char package_address[9] = {0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0xA0}; //  0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87 
+    unsigned char package_address[9] = {0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87}; //  0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87 
     create_xbee_packet(package_length,package_frame_type,package_frame_id,package_address);
+
+    int adc1015_fd;             // Device-Handle 
+    int xbee_serial_fd;
+    adc1015_fd  = i2c_open(I2C_BUS_FILE_DESCRIPTOR,ADC1015_I2C_PORT_PATH);
+    xbee_serial_fd = serial_open(XBEE_SERIAL_PORT_PATH,SERIAL_PORT_BAUD_RATE);
     
+    init_adc(adc1015_fd,tx_buffer,rx_buffer);
+
     set_up_signal();
     set_up_exit_buttom();
-    
-
-    uint8_t 	spi_mode = 0;
-    uint32_t 	spi_speed = 125000000;
-
-    float mcp3208_chanel = 0.1;
-    float xbee_spi_chanel = 1.0;
-    int mcp3208_fd = init_spi_mcp3208(mcp3208_chanel, spi_mode, 50000);
-    int xbee_spi_fd = init_spi_xbee(xbee_spi_chanel, spi_mode, spi_speed);
 
     bool new_adc_val = true;
     
@@ -127,52 +125,55 @@ int main(void) {
 
     /* Initialize the file descriptor set. */
     FD_ZERO(&send_package);
-    FD_SET(xbee_spi_fd,&send_package);
-
+    FD_SET(xbee_serial_fd,&send_package);
     FD_ZERO(&write_fd);
-    FD_SET(mcp3208_fd, &write_fd);
+    FD_SET(adc1015_fd, &write_fd);
+
     struct timespec time;
     int i=0;
     while(run_program){
 
-        
+            
         if(new_adc_val)
-        {   
+        {
             msleep(100);
-            time = timer_start();
             send_signal(&signal);
-            /*Read pedal value & store in rx_buffer */
             retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-            if(FD_ISSET(mcp3208_fd,&write_fd))
+            if(FD_ISSET(adc1015_fd,&write_fd))
             {
-                tx_buffer[0]= 0b00000110;
-                tx_buffer[1]= 0b00000000;
-                tx_buffer[2]= 0x00;
-                spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
-                get_analog_value(rx_buffer);
+                ads1015_rx(adc1015_fd,tx_buffer,rx_buffer);
                 new_adc_val = false;
             }
         }
-        usleep(10);
-        if(!new_adc_val){
-            packet.data[0] = 0x4D;
-            packet.data[1] = 0x4E;
-            retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
         
-            if(FD_ISSET(xbee_spi_fd,&send_package))
+        if(!new_adc_val){
+            if(i==0)
             {
-                /*send read value across SPI bus*/
-                send_package_spi(&packet,xbee_spi_fd);
-                new_adc_val = true;  
-                time_spi = timer_end(time);
-                printf("Time taken (nanoeconds): %d\n", time_spi);
+                packet.data[0] = 0x4D;
+                packet.data[1] = 0x4E;
+                i+=1;
+            }else if(i==1)
+            {
+                packet.data[0] = 0x4A;
+                packet.data[1] = 0x4B;
+                i+=1;
+            }else{
+                packet.data[0] = 0x4C;
+                packet.data[1] = 0x4F;
+                i=0;
             }
-        }    
-        i++;
+            retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
+            if(FD_ISSET(xbee_serial_fd,&send_package))
+            {
+                /*send read value across bluetooth*/
+                send_package_uart(&packet,xbee_serial_fd);
+                new_adc_val = true; 
+            } 
+        }  
     }
     
-    close(mcp3208_fd);
-    close(xbee_spi_fd);
+    close(adc1015_fd);
+    close(xbee_serial_fd);
     close(signal.fd);
     close(exit_button.fd);
     return 0;

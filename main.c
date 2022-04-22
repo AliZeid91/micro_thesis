@@ -139,17 +139,18 @@ int main(void) {
         timeout.tv_usec = 0;   
 
 
-    #if 0
+    #if 1
         /* Initialize the file descriptor set. */
         FD_ZERO(&send_package);
         FD_SET(xbee_serial_fd,&send_package);
         FD_ZERO(&write_fd);
         FD_SET(adc1015_fd, &write_fd);
         while(1){
-            msleep(8);
-            send_signal(&signal);
+            msleep(200);
+            
             if(get_adc_val)
             {
+                send_signal(&signal);
                 retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
                 if(FD_ISSET(adc1015_fd,&write_fd))
                 {
@@ -170,7 +171,7 @@ int main(void) {
                 } 
             }  
         } 
-    //#else 
+    #else 
         /* Initialize the file descriptor set. */
         FD_ZERO(&send_package);
         FD_SET(xbee_spi_fd,&send_package);
@@ -194,7 +195,7 @@ int main(void) {
                 }
             }
 
-            msleep(100);
+            msleep(1000);
 
             if(!get_adc_val){
                 packet.data[0] = 0x4D;
@@ -213,11 +214,6 @@ int main(void) {
 
     #endif
     
-    while(run_program) {
-        printf("Working\n\r");
-        fflush(stdout);
-        sleep(2);
-    }
 
     close_serial_port();
     return 0;
