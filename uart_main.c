@@ -118,16 +118,15 @@ int main(void) {
     fd_set write_fd, send_package;
     struct timeval timeout;
     int retval;
-    
-    /* Initialize the timeout */
-    timeout.tv_sec  = 2;       //2 Seconds
-    timeout.tv_usec = 0;   
 
 
     struct timespec time;
     int i=0;
     while(run_program){
 
+           /* Initialize the timeout */
+        timeout.tv_sec  = 2;       //2 Seconds
+        timeout.tv_usec = 0; 
         /* Initialize the file descriptor set. */
         FD_ZERO(&send_package);
         FD_SET(xbee_serial_fd,&send_package);
