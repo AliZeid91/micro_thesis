@@ -135,7 +135,7 @@ int main(void) {
             
         if(new_adc_val)
         {
-            msleep(1000);
+            msleep(100);
             send_signal(&signal);
             retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
             if(FD_ISSET(adc1015_fd,&write_fd))
@@ -154,6 +154,10 @@ int main(void) {
                 packet.data[1] = 0x44;  
             }
             i++;
+            /* Initialize the timeout */
+            timeout.tv_sec  = 2;       //2 Seconds
+            timeout.tv_usec = 0;
+
             retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
             if(FD_ISSET(xbee_serial_fd,&send_package))
             {   
