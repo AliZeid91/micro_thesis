@@ -123,16 +123,16 @@ int main(void) {
     timeout.tv_sec  = 2;       //2 Seconds
     timeout.tv_usec = 0;   
 
-    /* Initialize the file descriptor set. */
-    FD_ZERO(&send_package);
-    FD_SET(xbee_serial_fd,&send_package);
-    FD_ZERO(&write_fd);
-    FD_SET(adc1015_fd, &write_fd);
 
     struct timespec time;
     int i=0;
     while(run_program){
-            
+
+        /* Initialize the file descriptor set. */
+        FD_ZERO(&send_package);
+        FD_SET(xbee_serial_fd,&send_package);
+        FD_ZERO(&write_fd);
+        FD_SET(adc1015_fd, &write_fd);    
         if(new_adc_val)
         {
             msleep(100);
