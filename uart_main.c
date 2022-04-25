@@ -124,9 +124,6 @@ int main(void) {
     int i=0;
     while(run_program){
 
-           /* Initialize the timeout */
-        timeout.tv_sec  = 2;       //2 Seconds
-        timeout.tv_usec = 0; 
         /* Initialize the file descriptor set. */
         FD_ZERO(&send_package);
         FD_SET(xbee_serial_fd,&send_package);
@@ -136,6 +133,9 @@ int main(void) {
         {
             msleep(100);
             send_signal(&signal);
+            /* Initialize the timeout */
+            timeout.tv_sec  = 2;       //2 Seconds
+            timeout.tv_usec = 0; 
             retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
             if(FD_ISSET(adc1015_fd,&write_fd))
             {
