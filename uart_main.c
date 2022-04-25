@@ -132,11 +132,10 @@ int main(void) {
     struct timespec time;
     int i=0;
     while(run_program){
-
             
         if(new_adc_val)
         {
-            msleep(100);
+            msleep(1000);
             send_signal(&signal);
             retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
             if(FD_ISSET(adc1015_fd,&write_fd))
@@ -147,24 +146,17 @@ int main(void) {
         }
         
         if(!new_adc_val){
-            if(i==0)
-            {
-                packet.data[0] = 0x4D;
-                packet.data[1] = 0x4E;
-                i+=1;
-            }else if(i==1)
-            {
-                packet.data[0] = 0x4A;
-                packet.data[1] = 0x4B;
-                i+=1;
+            if(i%2==0){
+                packet.data[0] = 0x41;
+                packet.data[1] = 0x42;
             }else{
-                packet.data[0] = 0x4C;
-                packet.data[1] = 0x4F;
-                i=0;
+                packet.data[0] = 0x43;
+                packet.data[1] = 0x44;  
             }
+            i++;
             retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
             if(FD_ISSET(xbee_serial_fd,&send_package))
-            {
+            {   
                 /*send read value across bluetooth*/
                 send_package_uart(&packet,xbee_serial_fd);
                 new_adc_val = true; 
