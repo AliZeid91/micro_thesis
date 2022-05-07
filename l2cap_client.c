@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         float mcp3208_chanel = 0.1;
         int mcp3208_fd = init_spi_mcp3208(mcp3208_chanel, spi_mode, spi_speed);
 
-        int BUS = SPI;
+        int BUS = I2C;
         
         /* Initialize the file descriptor set. */
         if(BUS == I2C)
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
             switch (BUS)
             {
                 case I2C:
-                    //msleep(100);
+                    msleep(100);
                     send_signal(&signal);
                     retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
                     if(FD_ISSET(adc1015_fd,&write_fd))
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
                     }
                     break;
                 case SPI:
-                    //msleep(15);
+                    msleep(100);
                     send_signal(&signal);
                     retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
                     if(FD_ISSET(mcp3208_fd,&write_fd))

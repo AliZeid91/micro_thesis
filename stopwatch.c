@@ -12,8 +12,8 @@ long timer_end(struct timespec start_time){
     struct timespec end_time;
     clock_gettime(CLOCK_MONOTONIC, &end_time);
     // Convert nanoseconds to milliseconds
-    //long diffInMilli = (end_time.tv_sec - start_time.tv_sec) * (long)1e3 + ((end_time.tv_nsec - start_time.tv_nsec) / 1.0e6);
-    long diffInMilli = (end_time.tv_sec - start_time.tv_sec) * (long)1e3 + ((end_time.tv_nsec - start_time.tv_nsec));
+    long diffInMilli = (end_time.tv_sec - start_time.tv_sec) * (long)1e3 + ((end_time.tv_nsec - start_time.tv_nsec) / 1.0e6);
+    //long diffInMilli = (end_time.tv_sec - start_time.tv_sec) * (long)1e3 + ((end_time.tv_nsec - start_time.tv_nsec));
     return diffInMilli;
 }
 

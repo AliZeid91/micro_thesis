@@ -17,13 +17,16 @@ typedef struct {
 
 void *waitInterrupt(void *arg) {
     intVec *intData = (intVec*) arg;
-    struct epoll_event ev;
-    printf("startar en thread nu");
+    struct epoll_event event[1];
+    char read_buff[255];
     for (;;) {
-        int nfds = epoll_wait(intData->epfd, &ev, 1, -1);
+
+        int nfds = epoll_wait(intData->epfd, event, 1, 2000);
         if (nfds != 0) 
         {
             intData->func(intData->fd);
+            read(intData->fd, read_buff,255);
+            read(event[0].data.fd,read_buff,255);
         }
     }
 }

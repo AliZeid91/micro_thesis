@@ -13,6 +13,9 @@
 #include <linux/gpio.h>
 #include <sys/poll.h>
 
+#include <syscall.h>  
+#include <sched.h>
+
 //Stopwatch: 
 #include <time.h>
 #include "keybord_int.c"
@@ -95,33 +98,32 @@ int main(int argc, char **argv)
         uint8_t 	spi_mode = 0;
         uint32_t 	spi_speed = 500000;
 
-        float mcp3208_chanel = 0.1;
+        float mcp3208_chanel = 1.0;
         int mcp3208_fd = init_spi_mcp3208(mcp3208_chanel, spi_mode, spi_speed);
 
-        int BUS = I2C;
         
         /* Initialize the file descriptor set. */
-        if(BUS == I2C)
-        {
-            FD_ZERO(&write_fd);
-            FD_SET(adc1015_fd, &write_fd);
-        }else
-        {
-            FD_ZERO(&write_fd);
-            FD_SET(mcp3208_fd, &write_fd);
-        }
+        FD_ZERO(&write_fd);
+        FD_SET(mcp3208_fd, &write_fd);
 
         /* Initialize the timeout */
         timeout.tv_sec  = 2;       //2 Seconds
         timeout.tv_usec = 0;
 
         set_up_signal();
+            const struct sched_param priority = {1};
+
+        if (sched_setscheduler(getpid(), SCHED_FIFO, &priority) < 0 )
+            fprintf(stderr, "SETSCHEDULER failed - err = %s\n", strerror(errno));
+        else
+            printf("Priority set to \"%d\"\n", priority);
 
         changemode(1);  //bbfb
         while (!kbhit()) { 
             printf("%d| \n", i);
-            msleep(30);
+            msleep(100);
             send_signal(&signal);
+            #if 1
             retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
             if(FD_ISSET(mcp3208_fd,&write_fd))
             {
@@ -131,13 +133,21 @@ int main(int argc, char **argv)
                 spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
                 get_analog_value(rx_buffer);
             }
-            //read_adc(adc_fd, adcWriteBuf, adcReadBuf);  //Read pedal value & store in adcReadBuf
-            if(BUS == SPI)
-            {
-                write(s, rx_buffer , 2);  //send read value across bluetooth:
+            #endif
+
+            if(i%2==0){
+                rx_buffer[0] = 0x41;
+                rx_buffer[1] = 0x42;
+                rx_buffer[2] = '\0';
+                printf("\nAB\n");
             }else{
-                write(s, rx_buffer , 3);  //send read value across bluetooth:
+                rx_buffer[0] = 0x43;
+                rx_buffer[1] = 0x44; 
+                rx_buffer[2] = '\0';
+                printf("\nCD\n");
             }
+            //read_adc(adc_fd, adcWriteBuf, adcReadBuf);  //Read pedal value & store in adcReadBuf
+            write(s, rx_buffer , 3);  //send read value across bluetooth:
            
             i++;
         }
@@ -166,6 +176,7 @@ int delay_ms(unsigned int tms) {
   return usleep(tms * 1000);
 }
 
+
 void set_up_signal(){
     int fd;
 
@@ -182,6 +193,7 @@ void set_up_signal(){
 	memset(signal.default_values, 0, sizeof(signal.default_values));
 	signal.lines = 1;
 	signal.lineoffsets[0] = 5;
+    signal.default_values[0] = 1; 
 
 	if(ioctl(fd, GPIO_GET_LINEHANDLE_IOCTL, &signal) < 0) {
 		perror("Error setting GPIO 16 to output");
@@ -193,13 +205,13 @@ void set_up_signal(){
 void send_signal(struct gpiohandle_request* signal){
     struct gpiohandle_data data;
     /* Send a puls */
-	data.values[0] = 1;
+	data.values[0] = 0;
 	if(ioctl(signal->fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data) < 0) 
 		perror("Error setting GPIO to 1");
 
     usleep(50);
 
-    data.values[0] = 0;
+    data.values[0] = 1;
 	if(ioctl(signal->fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data) < 0) 
-		perror("Error setting GPIO to 1");
+		perror("Error setting GPIO to 0");
 }

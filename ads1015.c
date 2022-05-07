@@ -69,7 +69,8 @@ void ads1015_rx(int i2c_fd, uint8_t *writeBuf, uint8_t *readBuf){
         adc_val = readBuf[0] << 8 | readBuf[1];	
 
         /* Print the result to terminal, first convert from binary value to mV */
-        printf("ADS1015 Voltage Reading %f V \n", (float)adc_val*6.144/32767.0);	
+        //printf("ADS1015 Voltage Reading %f V \n", (float)adc_val*6.144/32767.0);	
+        //printf("MCP3208 Voltage Reading %f V \n", (float)((adc_val*6.144/32767.0) )) ;	
         //printf("%3d%3d\n",readBuf[0],readBuf[1]);
         //packet.data[0] = readBuf[0];
         //packet.data[1] = readBuf[1];

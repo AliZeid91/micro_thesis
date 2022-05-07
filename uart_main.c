@@ -51,9 +51,9 @@
 #include <fcntl.h>
 
 
-#define SERIAL_PORT_BAUD_RATE 9600
+#define SERIAL_PORT_BAUD_RATE 230400
 
-#define XBEE_SERIAL_PORT_PATH   "/dev/ttyUSB0" //"/dev/ttyUSB0" "/dev/serial0" Address of our Xbee on the UART bus
+#define XBEE_SERIAL_PORT_PATH  "/dev/serial0"   //"/dev/ttyUSB0" "/dev/serial0" Address of our Xbee on the UART bus
 #define ADC1015_I2C_PORT_PATH   0x48         // Address of our adc converter on the I2C bus
 
 #define I2C_BUS_FILE_DESCRIPTOR 1
@@ -105,10 +105,11 @@ int main(void) {
     int xbee_serial_fd;
     adc1015_fd  = i2c_open(I2C_BUS_FILE_DESCRIPTOR,ADC1015_I2C_PORT_PATH);
     xbee_serial_fd = serial_open(XBEE_SERIAL_PORT_PATH,SERIAL_PORT_BAUD_RATE);
-    
+    msleep(1);
     init_adc(adc1015_fd,tx_buffer,rx_buffer);
-
+    msleep(1);
     set_up_signal();
+    msleep(1);
     set_up_exit_buttom();
 
     bool new_adc_val = true;
@@ -127,11 +128,12 @@ int main(void) {
         /* Initialize the file descriptor set. */
         FD_ZERO(&send_package);
         FD_SET(xbee_serial_fd,&send_package);
+        msleep(50);
         FD_ZERO(&write_fd);
         FD_SET(adc1015_fd, &write_fd);    
         if(new_adc_val)
         {
-            msleep(100);
+            msleep(70);
             send_signal(&signal);
             /* Initialize the timeout */
             timeout.tv_sec  = 2;       //2 Seconds
@@ -150,7 +152,7 @@ int main(void) {
                 packet.data[1] = 0x42;
             }else{
                 packet.data[0] = 0x43;
-                packet.data[1] = 0x44;  
+                packet.data[1] = 0x44; 
             }
             i++;
             /* Initialize the timeout */
@@ -159,7 +161,7 @@ int main(void) {
 
             retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
             if(FD_ISSET(xbee_serial_fd,&send_package))
-            {   
+            {    
                 /*send read value across bluetooth*/
                 send_package_uart(&packet,xbee_serial_fd);
                 new_adc_val = true; 
@@ -190,28 +192,25 @@ void set_up_signal(){
 	memset(signal.default_values, 0, sizeof(signal.default_values));
 	signal.lines = 1;
 	signal.lineoffsets[0] = 5;
+    signal.default_values[0] = 1; 
 
 	if(ioctl(fd, GPIO_GET_LINEHANDLE_IOCTL, &signal) < 0) {
 		perror("Error setting GPIO 16 to output");
 		close(fd);
 		exit(0);
 	}
-     struct gpiohandle_data data;
-    data.values[0] = 0;
-	if(ioctl(signal.fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data) < 0) 
-		perror("Error setting GPIO to 1");
 }
 
 void send_signal(struct gpiohandle_request* signal){
     struct gpiohandle_data data;
     /* Send a puls */
-	data.values[0] = 1;
+	data.values[0] = 0;
 	if(ioctl(signal->fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data) < 0) 
 		perror("Error setting GPIO to 1");
 
     usleep(50);
 
-    data.values[0] = 0;
+    data.values[0] = 1;
 	if(ioctl(signal->fd, GPIOHANDLE_SET_LINE_VALUES_IOCTL, &data) < 0) 
 		perror("Error setting GPIO to 0");
 }

@@ -38,8 +38,6 @@
 #include "i2c.c"
 #include "xbee_process.c"
 #include "exit_program.c"
-//#include "start_stop_buttom.c"
-
 
 // #include "timer.c"
 #include "stopwatch.c"
@@ -70,7 +68,7 @@
 #define OFF  0
 #define ON   1
 
-bool run_program = false;
+bool run_program = true;
 
 struct gpiohandle_request signal;
 struct gpioevent_request exit_button;
@@ -78,43 +76,29 @@ struct gpioevent_request exit_button;
 struct pollfd pfd;
 static struct epoll_event ev;
 intVec intData;
-pthread_t intThread;
 
-struct epoll_event *events;
+
 int msleep(unsigned int tms) {
   return usleep(tms * 1000);
+}
+
+int button_pressed;
+
+void myHandler(int fd) {
+    char buff [10];
+    if(!run_program){
+        run_program = true;
+        printf("Running Program\n");
+    }else{
+        run_program = false;
+        printf("Stop Program\n");
+    }
+    read(fd,&buff,10);
 }
 
 void set_up_signal();
 void send_signal(struct gpiohandle_request* signal);
 void set_up_exit_buttom(void);
-void set_up_start_buttom(void);
-
-int button_pressed;
-int count=0;
-void myHandler(int fd) {
-
-    run_program = false;
-    #if 0
-    close(exit_button.fd);
-    set_up_start_buttom();
-    struct gpioevent_data edata;  
-    read(fd, &edata, sizeof edata); 
-    printf("\ncount : %d\n",count);
-    count ++;
-    pthread_cancel(intThread);
-    #endif
-}
-
-void start_program(int fd) {
-
-    run_program = true;
-    close(exit_button.fd);
-    set_up_exit_buttom();
-    pthread_cancel(intThread);
-
-}
-
 
 int main(void) {
     
@@ -133,7 +117,10 @@ int main(void) {
     
     set_up_signal();
     //set_up_exit_buttom();
-    run_program = true;
+    
+    int adc1015_fd;             // Device-Handle 
+    adc1015_fd  = i2c_open(I2C_BUS_FILE_DESCRIPTOR,ADC1015_I2C_PORT_PATH);
+    init_adc(adc1015_fd,tx_buffer,rx_buffer);
 
     uint8_t 	spi_mode = 0;
     uint32_t 	spi_speed = 125000000;
@@ -153,63 +140,56 @@ int main(void) {
     button_pressed = 0;
     struct timespec time;
     int i=0;
-    while(i<100000)
-    {
-        /* Initialize the timeout */
-        timeout.tv_sec  = 2;       //2 Seconds
-        timeout.tv_usec = 0;   
 
-        /* Initialize the file descriptor set. */
-        FD_ZERO(&send_package);
-        FD_SET(xbee_spi_fd,&send_package);
-
-        FD_ZERO(&write_fd);
-        FD_SET(mcp3208_fd, &write_fd);
-        
-        if(new_adc_val)
-        {   
-            msleep(1);
-            send_signal(&signal);
-            new_adc_val = false;
-            #if 1
-            /*Read pedal value & store in rx_buffer */
-            retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
-            if(FD_ISSET(mcp3208_fd,&write_fd))
-            {
-                tx_buffer[0]= 0b00000110;
-                tx_buffer[1]= 0b00000000;
-                tx_buffer[2]= 0x00;
-                spi_mcp3208_rx(mcp3208_fd, tx_buffer,rx_buffer); 
-                //get_analog_value(rx_buffer);
-                new_adc_val = false;
-            }
-            #endif
-        }
-
-        if(!new_adc_val){
-            if(i%2==0){
-                packet.data[0] = 0x41;
-                packet.data[1] = 0x42;
-            }else{
-                packet.data[0] = 0x43;
-                packet.data[1] = 0x44; 
-            }
-            i++;
+        while(run_program){
             /* Initialize the timeout */
             timeout.tv_sec  = 2;       //2 Seconds
-            timeout.tv_usec = 0;
+            timeout.tv_usec = 0;   
 
-            retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
-            if(FD_ISSET(xbee_spi_fd,&send_package))
-            {
-                /*send read value across SPI bus*/
-                printf("Sänder\n");
-                send_package_spi(&packet,xbee_spi_fd);
-                new_adc_val = true;
+            /* Initialize the file descriptor set. */
+            FD_ZERO(&send_package);
+            FD_SET(xbee_spi_fd,&send_package);
+
+            FD_ZERO(&write_fd);
+            FD_SET(adc1015_fd, &write_fd);
+            
+            if(new_adc_val)
+            {   
+                msleep(1000);
+                send_signal(&signal);
+                new_adc_val = false;
+                #if 1
+                /*Read pedal value & store in rx_buffer */
+                retval = select(FD_SETSIZE, NULL, &write_fd, NULL, &timeout);
+                if(FD_ISSET(adc1015_fd,&write_fd))
+                {
+                    ads1015_rx(adc1015_fd,tx_buffer,rx_buffer);
+                    packet.data[0] = rx_buffer[0];
+                    packet.data[1] = rx_buffer[1];
+                    new_adc_val = false;
+                }
+                #endif
             }
-        }    
-    }
-    printf("Antalet sända packet är %d\n",i);
+
+            if(!new_adc_val){
+
+                i++;
+                /* Initialize the timeout */
+                timeout.tv_sec  = 2;       //2 Seconds
+                timeout.tv_usec = 0;
+
+                retval = select(FD_SETSIZE, NULL, &send_package, NULL, &timeout);
+                if(FD_ISSET(xbee_spi_fd,&send_package))
+                {
+                    /*send read value across SPI bus*/
+                    send_package_spi(&packet,xbee_spi_fd);
+                    printf("Sänder\n");
+                    new_adc_val = true;  ;
+                }
+            }    
+        }
+
+    
     close(mcp3208_fd);
     close(xbee_spi_fd);
     close(signal.fd);
@@ -268,7 +248,6 @@ void set_up_exit_buttom(void){
          exit(0);
     }
     close(fd);
-    #if 1
     ev.events = EPOLLIN;
     ev.data.fd = exit_button.fd;
     int epfd = epoll_create(1);
@@ -277,43 +256,11 @@ void set_up_exit_buttom(void){
     intData.epfd = epfd;
     intData.fd = exit_button.fd;
     intData.func = &myHandler;
+    pthread_t intThread;
     if (pthread_create(&intThread, NULL, waitInterrupt,
     (void*) &intData)) 
     {
         fprintf(stderr, "Error creating thread\n");
         exit(0);
     }
-    #endif
-}
-
-void set_up_start_buttom(void){
-
-    int fd, ret;
-    exit_button.lineoffset = 26;
-    exit_button.handleflags = GPIOHANDLE_REQUEST_INPUT;
-    exit_button.eventflags = GPIOEVENT_REQUEST_FALLING_EDGE;
-    strcpy(exit_button.consumer_label, "Event test");
-    fd = open("/dev/gpiochip0", O_RDONLY);
-    ret = ioctl(fd, GPIO_GET_LINEEVENT_IOCTL, &exit_button);
-    if(ret < 0){
-         perror("Det går inte att öppna GPIO!");
-         exit(0);
-    }
-    close(fd);
-    
-    ev.events = EPOLLIN;
-    ev.data.fd = exit_button.fd;
-    int epfd = epoll_create(1);
-    int res = epoll_ctl(epfd, EPOLL_CTL_ADD, exit_button.fd, &ev);
-
-    intData.epfd = epfd;
-    intData.fd = exit_button.fd;
-    intData.func = &start_program;
-    if (pthread_create(&intThread, NULL, waitInterrupt,
-    (void*) &intData)) 
-    {
-        fprintf(stderr, "Error creating thread\n");
-        exit(0);
-    }
-
 }
