@@ -67,20 +67,14 @@ void preparing_package(struct xBeePacket* p, unsigned char *tx_buff){
     checksum += p->options;
 
     //The actual message/data is sent. In this case, we only have two char/bytes to send
-    /*
-    tx_buff[14]= p->data[0];
-    checksum += p->data[0];
-    tx_buff[15] = p->data[1];
-    checksum += p->data[1];
-    */
+
     int tx_index = 14;
     for(int i = 0;i<p->length-11; i++){
-        printf("tx_index %d\n",tx_index);
         tx_buff[tx_index]= p->data[i];
         checksum += p->data[i];
         tx_index +=1;
     }
-    printf("tx_index %d\n",tx_index);
+
     //calculate the proper checksum
     tx_buff[tx_index] = (0xFF-checksum);
 

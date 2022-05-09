@@ -94,8 +94,16 @@ void set_up_signal();
 void send_signal(struct gpiohandle_request* signal);
 void set_up_exit_buttom(void);
 void set_up_start_buttom(void);
-
-
+void paket_nbr_1();
+void paket_nbr_2();
+void paket_nbr_3();
+void paket_nbr_4();
+void paket_nbr_5();
+void paket_nbr_6();
+void paket_nbr_7();
+void paket_nbr_8();
+void paket_nbr_9();
+void paket_nbr_10();
 
 int main(void) {
     
@@ -106,7 +114,7 @@ int main(void) {
     uint8_t mcp3208_tx[10];
     uint8_t mcp3208_rx[10];
 
-    int package_length = 17;
+    int package_length = 43;
     int package_frame_type = 0x00;
     int package_frame_id = 0x8B; 
     unsigned char package_address[9] = {0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0xA0}; //  0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87 
@@ -167,11 +175,7 @@ int main(void) {
                 }
             }
             if(!new_adc_val){
-                    packet.data[0] = 0x41;
-                    packet.data[1] = 0x42;
-                    packet.data[2] = 0x43;
-                    packet.data[3] = 0x43;
-                                        packet.data[4] = 0x41;
+                paket_nbr_1();
                 #if 0
                 if(i%10==0){
                     packet.data[0] = 0x41;
@@ -292,3 +296,163 @@ void send_signal(struct gpiohandle_request* signal){
 		perror("Error setting GPIO to 0");
 }
 
+void paket_nbr_1(){
+    unsigned char data = 0x20;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x30;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x40;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+}
+
+void paket_nbr_2(){
+    unsigned char data = 0x40;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x50;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x60;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_3(){
+    unsigned char data = 0x70;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x80;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x90;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_4(){
+    unsigned char data = 0x100;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x110;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x120;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_5(){
+    unsigned char data = 0x20;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x110;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x80;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_7(){
+    unsigned char data = 0x70;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x30;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x110;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_8(){
+    unsigned char data = 0x60;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x90;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x50;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+
+void paket_nbr_9(){
+    unsigned char data = 0x100;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x40;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x20;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
+void paket_nbr_10(){
+    unsigned char data = 0x80;
+    for(int i=0;i<10;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x60;
+    for(int i=10;i<20;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }
+    data = 0x100;
+    for(int i=20;i<30;i++){
+        packet.data[i] = data;
+        data += 0x01;
+    }    
+}
