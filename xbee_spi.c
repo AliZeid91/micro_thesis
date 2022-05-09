@@ -10,13 +10,13 @@ int init_spi_xbee(float spi_chanal, uint8_t mode, uint32_t speed){
 
 void send_package_spi(struct xBeePacket* p,int fd){
 
-	uint8_t tx_buffer[p->length +4];
-	uint8_t rx_buffer[17];
-	for(int i=0;i<17;i++){
+	uint8_t tx_buffer[p->length+4];
+	uint8_t rx_buffer[p->length+4];
+	for(int i=0;i<p->length+4;i++){
 		rx_buffer[i] = 0xff;
 	}
    	preparing_package(p, tx_buffer);
-	spi_transfer(fd,tx_buffer,rx_buffer,17);
+	spi_transfer(fd,tx_buffer,rx_buffer,p->length+4);
 }
 
 

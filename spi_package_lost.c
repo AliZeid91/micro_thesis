@@ -106,7 +106,7 @@ int main(void) {
     uint8_t mcp3208_tx[10];
     uint8_t mcp3208_rx[10];
 
-    int package_length = 13;
+    int package_length = 17;
     int package_frame_type = 0x00;
     int package_frame_id = 0x8B; 
     unsigned char package_address[9] = {0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0xA0}; //  0x00,0x13,0xA2,0x00,0x41,0xC7,0x20,0x87 
@@ -167,9 +167,16 @@ int main(void) {
                 }
             }
             if(!new_adc_val){
+                    packet.data[0] = 0x41;
+                    packet.data[1] = 0x42;
+                    packet.data[2] = 0x43;
+                    packet.data[3] = 0x43;
+                                        packet.data[4] = 0x41;
+                #if 0
                 if(i%10==0){
                     packet.data[0] = 0x41;
                     packet.data[1] = 0x42;
+                    packet.data[2] = 0x43;
                 }
                 else if(i%10==1){
                     packet.data[0] = 0x43;
@@ -211,6 +218,7 @@ int main(void) {
                     packet.data[0] = 0x5B;
                     packet.data[1] = 0x5C;                   
                 }
+                #endif
                 //i++;
                 /* Initialize the timeout */
                 timeout.tv_sec  = 2;       //2 Seconds
@@ -236,6 +244,7 @@ int main(void) {
                 if(received_status.delivery_status == 0){
                     i++;
                 }
+                msleep(5);
             }  
     }
     printf("Antalet Skickade Packet: %d\n",i);

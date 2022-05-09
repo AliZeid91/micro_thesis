@@ -132,7 +132,7 @@ int main(int argc, char **argv)
             struct timespec time;
             int nbr_of_tests = 0;
             run_program = true;
-            while (nbr_of_tests<10000)
+            while (nbr_of_tests<5)
             {      
                     send_signal(&signal);
                     #if 0
